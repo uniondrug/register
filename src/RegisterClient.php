@@ -8,6 +8,18 @@ namespace UniondrugRegister;
 class RegisterClient extends Client
 {
     /**
+     * 重置API服务器，当添加了API或者更新了插件设置等之后，触发
+     *
+     * @return bool
+     */
+    public function reload()
+    {
+        $res = $this->cmd('reload')->recv();
+
+        return $res->success;
+    }
+
+    /**
      * 注册一个Node
      *
      * @param string $serviceName 服务名称
