@@ -4,8 +4,8 @@
 
 ```shell
 $ cd project-home
-$ composer require uniondrug/register-client
-$ cp vendor/uniondrug/register-client/register.php config/
+$ composer require uniondrug/register
+$ cp vendor/uniondrug/register/register.php config/
 ```
 
 修改 `app.php` 配置文件，加上RegisterClient服务
@@ -16,7 +16,7 @@ return [
         ......
         'providers'           => [
             ......
-            \UniondrugRegister\RegisterClientServiceProvider::class,
+            \Uniondrug\Register\RegisterClientServiceProvider::class,
         ],
     ],
 ];

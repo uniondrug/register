@@ -3,7 +3,7 @@
  * 注册中心客户端
  */
 
-namespace UniondrugRegister;
+namespace Uniondrug\Register;
 
 class RegisterClient extends Client
 {

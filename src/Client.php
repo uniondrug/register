@@ -3,12 +3,12 @@
  * 注册中心客户端协议实现
  */
 
-namespace UniondrugRegister;
+namespace Uniondrug\Register;
 
 /**
  * Class Client
  *
- * @package UniondrugRegister
+ * @package Uniondrug\Register
  */
 class Client
 {
