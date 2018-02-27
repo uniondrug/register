@@ -1,5 +1,5 @@
 {
-    "name" : "uniondrug/register-client",
+    "name" : "uniondrug/register",
     "description" : "Register client for uniondrug/framework",
     "keywords" : [
         "phalcon",
