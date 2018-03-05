@@ -1,5 +1,7 @@
 # Register client for uniondrug/framework
 
+服务注册客户端
+
 ## 安装
 
 ```shell
@@ -8,7 +10,7 @@ $ composer require uniondrug/register
 $ cp vendor/uniondrug/register/register.php config/
 ```
 
-修改 `app.php` 配置文件，加上RegisterClient服务
+修改 `app.php` 配置文件，加上RegisterClient服务。服务名称：`registerClient`。
 
 ```php
 return [
