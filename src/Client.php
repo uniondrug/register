@@ -28,9 +28,9 @@ class Client
     const NL = "\r\n";
 
     /**
-     * @var bool
+     * @var null|resource
      */
-    private $handle = false;
+    private $handle = null;
 
     /**
      * @var string
@@ -161,7 +161,7 @@ class Client
             $command[] = $arg;
         }
 
-        $this->command = implode(" ", $command);
+        $this->command = implode(" ", $command) . static::NL;
 
         return $this->send();
     }
@@ -191,10 +191,12 @@ class Client
         } else if ($char == self::ERROR) {
             $response->success = false;
             $response->status = trim($status);
+
             return $response;
         } else {
             $response->success = false;
             $response->status = "Invalid response: " . $char . $status;
+
             return $response;
         }
         if ($multiLine) {
@@ -219,17 +221,25 @@ class Client
      */
     protected function send()
     {
-        if (empty($this->command)) {
-            throw new \RuntimeException("Command is empty");
-        }
-
         if (!is_resource($this->handle)) {
             throw new \RuntimeException("Connection not ready");
         }
 
-        $res = @fwrite($this->handle, $this->command);
-        if ($res === false) {
-            throw new \RuntimeException("Write to server failed");
+        if (empty($this->command)) {
+            throw new \RuntimeException("Command is empty");
+        }
+
+        if (!$this->noop()) {
+            $this->reconnect();
+        }
+
+        try {
+            $res = @fwrite($this->handle, $this->command);
+            if ($res === false) {
+                throw new \RuntimeException("Write to server failed");
+            }
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("Send data failed: " . $e->getMessage());
         }
 
         $this->last_used_command = $this->command;
@@ -237,5 +247,24 @@ class Client
         $this->command = '';
 
         return $this;
+    }
+
+    /**
+     * 发送一个空指令，查看服务器是否正常
+     *
+     * @return bool
+     */
+    public function noop()
+    {
+        try {
+            @fwrite($this->handle, 'noop' . static::NL);
+            $res = $this->recv();
+
+            return $res->success;
+        } catch (\Throwable $e) {
+            echo $e->getMessage();
+
+            return false;
+        }
     }
 }
