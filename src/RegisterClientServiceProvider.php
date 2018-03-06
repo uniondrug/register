@@ -1,6 +1,6 @@
 <?php
 
-namespace UniondrugRegister;
+namespace Uniondrug\Register;
 
 use Phalcon\Di\ServiceProviderInterface;
 
