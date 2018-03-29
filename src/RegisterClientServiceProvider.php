@@ -21,5 +21,12 @@ class RegisterClientServiceProvider implements ServiceProviderInterface
                 return $client;
             }
         );
+
+        // Under Swoole, auto register
+        if (function_exists('app')) {
+            if ($di->getConfig()->path('register.autoRegister')) {
+                $di->getShared('registerClient')->addNode(app()->getConfig()->path('app.appName'), app()->getConfig()->path('server.host'));
+            }
+        }
     }
 }

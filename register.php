@@ -8,8 +8,9 @@
  */
 return [
     'default' => [
-        'timeout' => 30,
-        'host'    => '127.0.0.1',
-        'port'    => 9530,
+        'autoRegister' => false,
+        'timeout'      => 30,
+        'host'         => '127.0.0.1',
+        'port'         => 9530,
     ],
 ];
