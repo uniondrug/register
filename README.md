@@ -12,6 +12,8 @@ $ cp vendor/uniondrug/register/register.php config/
 
 修改 `app.php` 配置文件，加上RegisterClient服务。服务名称：`registerClient`。
 
+> 注意，如果要注册中心以`tcp://`提供服务，本服务需要`tcpClient`支持，并且下面配置需要放在`TcpClientServiceProvider`下面。
+
 ```php
 return [
     'default' => [
@@ -33,17 +35,18 @@ return [
 /**
  * 服务注册中心的配置文件。
  *
- * host: 注册中心服务器地址
- * port: 注册中心服务器端口
+ * autoRegister: 是否自动注册到服务器，true，则在应用启动时自动向注册中心注册。（仅在Swoole环境下支持）
+ * service: 注册中心服务器地址
  * timeout: 连接超时时间，单位 秒，默认 30
  */
 return [
     'default' => [
+        'autoRegister' => true,
+        'service' => 'http://127.0.0.1:8001',
         'timeout' => 30,
-        'host'    => '127.0.0.1',
-        'port'    => 9530,
     ],
 ];
+
 ```
 
 ## 使用
@@ -68,7 +71,7 @@ return [
 `$weight` 权重是0~20之间的整数。
 
 ```php
-    $data = $this->getDI()->getShared('registerClient')->addNode($serviceName, $upstream, $weight);
+    $data = $this->getDI()->getShared('registerClient')->addNode($serviceName, $node, $weight, $connectTimeout);
     var_dump($data);
 ```
 
@@ -77,7 +80,7 @@ return [
 从注册服务器删除一个节点
 
 ```php
-    $data = $this->getDI()->getShared('registerClient')->delNode($serviceName, $upstream);
+    $data = $this->getDI()->getShared('registerClient')->delNode($node);
     var_dump($data);
 ```
 
@@ -88,4 +91,29 @@ return [
 ```php
     $data = $this->getDI()->getShared('registerClient')->getNodes($serviceName);
     var_dump($data);
+
+result:
+Array
+(
+    [0] => Array
+        (
+            [createdDate] => 2018-04-03
+            [serviceName] => order
+            [name] => http://10.6.7.8:8012
+            [desc] =>
+            [weight] => 10
+            [connectTimeout] => 23
+        )
+
+    [1] => Array
+        (
+            [createdDate] => 2018-04-03
+            [serviceName] => order
+            [name] => http://10.6.7.8:8013
+            [desc] =>
+            [weight] => 10
+            [connectTimeout] => 23
+        )
+
+)
 ```

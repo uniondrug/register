@@ -5,34 +5,58 @@
 
 namespace Uniondrug\Register;
 
-class RegisterClient extends Client
+use Uniondrug\Framework\Injectable;
+
+class RegisterClient extends Injectable
 {
     /**
-     * 重置API服务器，当添加了API或者更新了插件设置等之后，触发
+     * 采集服务
      *
-     * @return bool
+     * @var string
      */
-    public function reload()
-    {
-        $res = $this->cmd('reload')->recv();
+    protected $service = null;
 
-        return $res->success;
+    /**
+     * 投递超时
+     *
+     * @var int
+     */
+    protected $timeout = 1;
+
+    /**
+     * TraceClient constructor.
+     */
+    public function __construct()
+    {
+        if ($service = $this->config->path('register.service')) {
+            $this->service = $service;
+        }
+        if ($timeout = $this->config->path('register.timeout', 30)) {
+            $this->timeout = $timeout;
+        }
     }
 
     /**
      * 注册一个Node
      *
      * @param string $serviceName 服务名称
-     * @param string $upstream    服务地址
+     * @param        $name
      * @param int    $weight      服务权重，0~20
+     * @param int    $connectTimeout
      *
      * @return bool
      */
-    public function addNode($serviceName, $upstream, $weight = 10)
+    public function addNode($serviceName, $name, $weight = 8, $connectTimeout = 30)
     {
-        $res = $this->cmd('node', 'add', $serviceName, $upstream, $weight)->recv();
+        $data = [
+            'serviceName'    => $serviceName,
+            'name'           => $name,
+            'weight'         => $weight,
+            'connectTimeout' => $connectTimeout,
+        ];
+        $res = $this->cmd('post', '/node/add', ['json' => $data]);
 
-        return $res->success;
+        return is_object($res);
     }
 
     /**
@@ -44,10 +68,12 @@ class RegisterClient extends Client
      */
     public function getNode($serviceName)
     {
-        $res = $this->cmd('node', 'get', $serviceName)->recv(true);
-
-        if ($res->success) {
-            return $res->data[0];
+        $data = [
+            'serviceName' => $serviceName,
+        ];
+        $res = $this->cmd('post', '/node/get', ['json' => $data]);
+        if (is_object($res)) {
+            return $res->name;
         }
 
         return false;
@@ -58,37 +84,88 @@ class RegisterClient extends Client
      *
      * @param string $serviceName 服务名称
      *
-     * @return array
+     * @return array|bool
      */
     public function getNodes($serviceName)
     {
-        $res = $this->cmd('node', $serviceName)->recv(true);
-
-        $nodes = [];
-        if ($res->success) {
-            $data = $res->data;
-            array_shift($data); // 表头移除
-            foreach ($data as $row) {
-                $cells = preg_split("/\s+/", $row);
-                $nodes[] = $cells;
+        $data = [
+            'serviceName' => $serviceName,
+            'limit'       => 50,
+        ];
+        $res = $this->cmd('get', '/node/list', ['query' => $data]);
+        if ($res) {
+            $list = [];
+            foreach ($res->body as $item) {
+                $list[] = (array) $item;
             }
+
+            return $list;
         }
 
-        return $nodes;
+        return null;
     }
 
     /**
      * 移除一个Node
      *
-     * @param $serviceName
-     * @param $upstream
+     * @param $name
      *
      * @return bool
      */
-    public function delNode($serviceName, $upstream)
+    public function delNode($name)
     {
-        $res = $this->cmd('node', 'del', $serviceName, $upstream)->recv();
+        $data = [
+            'name' => $name,
+        ];
+        $res = $this->cmd('post', '/node/del', ['json' => $data]);
 
-        return $res->success;
+        return is_object($res);
+    }
+
+    /**
+     * 通过HTTP方式发送
+     *
+     * @param $method
+     * @param $path
+     * @param $options
+     *
+     * @return bool
+     */
+    public function cmd($method, $path, $options = [])
+    {
+        /**
+         * @var \GuzzleHttp\Client $client
+         */
+        if ($this->di->has('tcpClient')) {
+            $client = $this->di->getShared('tcpClient');
+        } elseif ($this->di->has('httpClient')) {
+            $client = $this->di->getShared('httpClient');
+        } else {
+            $client = new \GuzzleHttp\Client();
+        }
+        try {
+            $options = array_merge($options, [
+                'timeout' => $this->timeout,
+            ]);
+            $res = $client->$method($this->service . $path, $options);
+            $json = (string) $res->getBody();
+            $std = json_decode($json);
+            if (json_last_error()) {
+                $error = json_last_error_msg();
+                throw new \Exception("invalid json response: $error", 400);
+            }
+            if (isset($std->errno) && 0 !== (int) $std->errno) {
+                throw new \Exception($std->error, $std->errno);
+            }
+            if (isset($std->data)) {
+                return $std->data;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            $this->di->getLogger('register')->error(sprintf("[RegisterClient] Send data to server failed: %s", $e->getMessage()));
+
+            return false;
+        }
     }
 }
