@@ -136,13 +136,21 @@ class RegisterClient extends Injectable
         /**
          * @var \GuzzleHttp\Client $client
          */
-        if ($this->di->has('tcpClient')) {
-            $client = $this->di->getShared('tcpClient');
-        } elseif ($this->di->has('httpClient')) {
-            $client = $this->di->getShared('httpClient');
+        if ('tcp' === strtolower(substr($this->service, 0, 3))) {
+            if ($this->di->has('tcpClient')) {
+                $client = $this->di->getShared('tcpClient');
+            } else {
+                $this->di->getLogger('register')->error(sprintf("[TraceClient] TcpClient not installed."));
+                return false;
+            }
         } else {
-            $client = new \GuzzleHttp\Client();
+            if ($this->di->has('httpClient')) {
+                $client = $this->di->getShared('httpClient');
+            } else {
+                $client = new \GuzzleHttp\Client();
+            }
         }
+
         try {
             $options = array_merge($options, [
                 'timeout' => $this->timeout,
